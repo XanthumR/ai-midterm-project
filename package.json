@@ -5,7 +5,7 @@
   "main": "index.html",
   "type": "module",
   "scripts": {
-    "start": "npx -y live-server@latest --port=3000 --ignore=Full Path to the python-osmnx-api-server file",
+    "start": "npx -y live-server@latest --port=3000 --ignore=C:/Users/XanthumS/Desktop/ai-proj/ai-midterm-project/python-osmnx-api-server",
     "lint": "npx -y eslint@latest .",
     "test": "NODE_OPTIONS=--experimental-vm-modules npx -y jest@latest --watchAll"
   },
@@ -20,6 +20,9 @@
   },
   "private": true,
   "dependencies": {
+    "@datastructures-js/priority-queue": "^6.3.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "leaflet": "^1.9.4"
   }
 }

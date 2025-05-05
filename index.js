@@ -1,12 +1,23 @@
 
+let data;
 
+async function loadGraphData() {
+  data = await get_graph_data();
+}
+
+loadGraphData();
+console.log("loaded graph data");
 let graphData = {};
-var map = L.map('map').setView([51.507033, -0.127029], 13);
+var map = L.map('map').setView([37.2129486, 28.3630293], 13);
+
+
+
 let click = 0;
 let latLng1 = {
   latLng: null,
   nodeId: null
 } ;
+
 let latLng2= {
   latLng: null,
   nodeId: null
@@ -15,24 +26,20 @@ let latLng2= {
         maxZoom: 19,
         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>'
       }).addTo(map);
-      var marker = L.marker([51.507033, -0.127029]).addTo(map);
+      var marker = L.marker([37.2129486, 28.3630293]).addTo(map);
 
 
       var popup = L.popup();
 
+
+      L.geoJSON
+      
+      
       async function onMapClick(e) {
         map.off('click', onMapClick);
-        let data;
         console.log(click);
         if (click == 0) {
           latLng1.latLng = e.latlng;
-          data= await get_graph_data(latLng1.latLng.lat,latLng1.latLng.lng,0,0);
-          if (data == 1000){
-            alert("No graph data available for this location");
-            map.on('click', onMapClick);
-            latLng1.latLng != null
-            return;
-        }
           const snapnode=getNearestNode(latLng1.latLng.lat,latLng1.latLng.lng,data);
           console.log("nearest node: ",snapnode);
           L.marker(snapnode[0]).addTo(map);
@@ -41,14 +48,6 @@ let latLng2= {
         }
         else if (click == 1) {
           latLng2.latLng = e.latlng;
-          data=await get_graph_data(latLng2.latLng.lat,latLng2.latLng.lng,0,0);
-          if (data == 1000){
-            alert("No graph data available for this location");
-            map.on('click', onMapClick);
-            latLng2.latLng != null
-            click = 1;
-            return;
-          }
           const snapnode=getNearestNode(latLng2.latLng.lat,latLng2.latLng.lng,data);
           console.log("nearest node: ",snapnode);
           L.marker(snapnode[0]).addTo(map);
@@ -57,11 +56,8 @@ let latLng2= {
         }
         click++;
         if (latLng1.latLng != null && latLng2.latLng != null){
-          data=await get_graph_data(latLng1.latLng.lat,
-                                    latLng1.latLng.lng,
-                                    latLng2.latLng.lat,
-                                    latLng2.latLng.lng);
           path = await dijkstra(data,latLng1.nodeId,latLng2.nodeId);
+
           console.log(path);
           var latlngs = [];
           for (let i = 0; i < path.length; i++){
@@ -79,45 +75,59 @@ let latLng2= {
         map.on('click', onMapClick);
       }
 
-
-      async function get_graph_data(lat1, lon1, lat2, lon2){
-        const response = await fetch(`http://localhost:5000/get_graph_data?lat1=${lat1}&lon1=${lon1}&lat2=${lat2}&lon2=${lon2}&click=${click}`);
-        const data = await response.json();
-        if (data.error !== undefined){
-          return 1000;
+      async function get_graph_data() {
+        try {
+          const response = await fetch('graph-data.json');
+          if (!response.ok) {
+            throw new Error('Failed to load graph data');
+          }
+          const graphData = await response.json();
           
+
+          return graphData;
+          
+        } catch (error) {
+          console.error('Error loading graph data:', error);
+          alert('Error loading graph data. Please try again later.');
+          return null;
         }
-        return data;
-        
       }
 
-
-
-
-
-      function getNearestNode(lat,lon,graphData){
-        let difLatBef = Infinity;
-        let difLonBef = Infinity;
+      function getNearestNode(lat, lon, graphData) {
+        let minDistance = Infinity;
         let nearestNode = null;
         let nodeId = null;
-        for(let point in graphData.coordinates){
-          let difLatCurr = Math.abs(lat - graphData.coordinates[point][0]);
-          let difLonCurr = Math.abs(lon - graphData.coordinates[point][1]);
-          if (difLatBef > difLatCurr || difLonBef > difLonCurr){
-            difLatBef = difLatCurr;
-            difLonBef = difLonCurr;
-            nearestNode = graphData.coordinates[point];
-            nodeId = point;
-      }
-    }
-    return [nearestNode,nodeId];
     
-  }
+
+        for (let point in graphData.coordinates) {
+            let nodeLat = graphData.coordinates[point][0];
+            let nodeLon = graphData.coordinates[point][1];
+    
+
+            let difLat = lat - nodeLat;
+            let difLon = lon - nodeLon;
+            let distance = Math.sqrt(difLat * difLat + difLon * difLon);
+    
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestNode = graphData.coordinates[point];
+                nodeId = point;
+            }
+        }
+    
+        return [nearestNode, nodeId];
+    }
+    
       
       map.on('click', onMapClick);
 
 
 function clearMap() {
-  map.eachLayer(layer)
+  map.eachLayer(function (layer) {
+    if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+      map.removeLayer(layer);
+    }
+  });
 }
-      map.on('keydown')
+      map.on('keydown',clearMap)
